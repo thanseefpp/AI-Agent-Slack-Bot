@@ -1,0 +1,23 @@
+# Conda Environment Setup Instructions
+#  - Using an environment.yml file with conda
+#  - Key Terminal Commands:
+#
+#    conda env create -f environment.yml
+#    conda env update --file environment.yml --prune
+#    conda env export --name ai-agent-env > environment.yml
+#    conda env remove --name ai-agent-env
+#    conda env list
+
+name: ai-agent-env
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.10
+  - pip
+  - bottleneck
+  - pip:
+      - numpy==2.1.1
+      - fastapi==0.112.2
+      - structlog==24.4.0
