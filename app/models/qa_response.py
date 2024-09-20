@@ -1,10 +1,13 @@
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List
 
-class QuestionInput(BaseModel):
-    questions: List[str]
-    slack_channel: str
+class Question(BaseModel):
+    text: str
 
+class Answer(BaseModel):
+    question: str
+    answer: str
 
-class QAResponse(BaseModel):
-    answers: Dict[str, str]
+class ProcessingResult(BaseModel):
+    message: str
+    results: List[Answer]
