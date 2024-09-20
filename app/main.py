@@ -14,8 +14,8 @@ app.add_middleware(
 )
 
 app.include_router(
-    routes,
-    prefix="/v1/",
+    routes.api_router,
+    prefix="/api/v1",
     tags=["zania_agent"],
 )
 
