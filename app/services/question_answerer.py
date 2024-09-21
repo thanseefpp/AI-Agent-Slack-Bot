@@ -1,6 +1,7 @@
 import aiohttp
 import asyncio
-from typing import List, Tuple
+import tiktoken
+from typing import List, Tuple, Dict
 from langchain_community.vectorstores import FAISS
 from app.utils.error_handlers import OpenAIQueryError
 from app.config.env_manager import get_settings
@@ -16,29 +17,46 @@ class QuestionAnswerer:
     def __init__(self):
         self.api_key = env_settings.OPENAI_API_KEY
         self.session = None
+        self.encoding = tiktoken.encoding_for_model("gpt-4o-mini")
+        self.total_tokens = 0
+        self.input_tokens = 0
+        self.output_tokens = 0
         
     async def get_session(self):
         if self.session is None:
             self.session = aiohttp.ClientSession()
         return self.session
 
+    def count_tokens(self, text: str) -> int:
+        return len(self.encoding.encode(text))
+
     async def get_api_response(self, question: str, context: str) -> dict:
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that answers questions based on the given context. If the answer is not explicitly stated in the context or if you're not confident in your answer, reply with 'Data Not Available'"},
+            {"role": "user", "content": f"Context: {context}\n\nQuestion: {question}"}
+        ]
+        
+        input_tokens = sum(self.count_tokens(m['content']) for m in messages)
+        self.input_tokens += input_tokens
+        self.total_tokens += input_tokens
+
         async with self.session.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
             json={
                 "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "system", "content": "You are a helpful assistant that answers questions based on the given context. If the answer is not explicitly stated in the context or if you're not confident in your answer, reply with 'Data Not Available'."},
-                    {"role": "user", "content": f"Context: {context}\n\nQuestion: {question}"}
-                ],
+                "messages": messages,
                 "max_tokens": 150,
                 "n": 1,
                 "stop": None,
                 "temperature": 0,
             }
         ) as response:
-            return await response.json()
+            result = await response.json()
+            output_tokens = self.count_tokens(result['choices'][0]['message']['content'])
+            self.output_tokens += output_tokens
+            self.total_tokens += output_tokens
+            return result
 
     async def process_question(self, question: str, context: str) -> str:
         parser = AnswerParser(context)
@@ -62,8 +80,18 @@ class QuestionAnswerer:
         if self.session:
             await self.session.close()
 
+    def get_token_usage(self) -> Dict[str, float]:
+        return {
+            "total_tokens": self.total_tokens,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "estimated_cost": (self.input_tokens / 1000) * 0.000075  # $0.000075 per 1K input tokens(Take from OpenAI official pricing)
+        }
 
-async def process_questions(doc_processor: DocumentProcessor, question_answerer: QuestionAnswerer, vector_db : FAISS, questions: List[Question]) -> List[Answer]:
+
+async def process_questions(doc_processor: DocumentProcessor, question_answerer: QuestionAnswerer, vector_db: FAISS, questions: List[Question]) -> Tuple[List[Answer], Dict[str, float]]:
     questions_and_contexts = [(q.text, doc_processor.get_relevant_context(vector_db, q.text)) for q in questions]
     answers = await question_answerer.get_answers(questions_and_contexts)
-    return [Answer(question=q.text, answer=a) for q, a in zip(questions, answers)]
+    results = [Answer(question=q.text, answer=a) for q, a in zip(questions, answers)]
+    token_usage = question_answerer.get_token_usage()
+    return results, token_usage

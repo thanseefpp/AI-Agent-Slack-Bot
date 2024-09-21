@@ -5,7 +5,7 @@ from app.utils.error_handlers import SlackPostingError
 from app.config.env_manager import get_settings
 from app.utils.logger import structlog
 from app.models.qa_response import Answer
-from typing import List
+from typing import List, Dict
 
 logger = structlog.get_logger(__name__)
 env_settings = get_settings()
@@ -43,6 +43,8 @@ class SlackNotifier:
             await self.session.close()
 
 
-def format_slack_message(results: List[Answer]) -> str:
+def format_slack_message(results: List[Answer], token_usage : Dict[str, int]) -> str:
     output = json.dumps([result.dict() for result in results], indent=2)
-    return f"AI Generated Response:\n```\n{output}\n```"
+    token_usage_message = f"\nToken Usage: \n```{token_usage}```"
+    final_response = f"AI Generated Response:\n```\n{output}\n``` {token_usage_message}"
+    return final_response
