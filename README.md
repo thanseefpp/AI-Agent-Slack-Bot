@@ -46,6 +46,12 @@ conda env update --file environment.yml --prune
 pip install -r requirements.txt
 ```
 
+### To Run the Application
+
+```bash
+python runner.py
+```
+
 ## SetupContainer
 
 - If you have Docker installed on your machine, you can run the container using the following command:
