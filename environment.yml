@@ -14,7 +14,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.11.9
+  - python=3.11.8
   - pip
   - bottleneck
   - pip:
@@ -31,3 +31,5 @@ dependencies:
       - slack_sdk==3.33.1
       - aiohttp==3.10.5
       - aiofiles==24.1.0
+      - cachetools==5.5.0
+      - gunicorn==23.0.0
