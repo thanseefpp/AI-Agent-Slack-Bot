@@ -28,3 +28,4 @@ dependencies:
       - python-multipart==0.0.9
       - pypdf==5.0.0
       - faiss-cpu==1.7.3
+      - slack_sdk==3.33.1

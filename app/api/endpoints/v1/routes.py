@@ -30,6 +30,6 @@ async def process_pdf_qa(questions: str = Form(...), pdf_file: UploadFile = File
     slack_notifier.push_notification(f"AI Generated Response:\n```\n{output}\n```")
 
     return ProcessingResult(
-        message="Here is your answer",
+        message="Here is the answer to your questions",
         results=results
     )

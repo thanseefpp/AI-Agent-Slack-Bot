@@ -1,6 +1,5 @@
-import os
-from slack import WebClient
-from slack.errors import SlackApiError
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from app.utils.error_handlers import SlackPostingError
 from app.config.env_manager import get_settings
 from app.utils.logger import structlog
@@ -15,7 +14,7 @@ class SlackNotifier:
     def push_notification(self, message: str):
         try:
             response = self.client.chat_postMessage(
-                channel='#ai-bot-response',
+                channel=env_settings.SLACK_CHANNEL,
                 text=message)
             assert response["message"]["text"] == message
         except SlackApiError as e:
