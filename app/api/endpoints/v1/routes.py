@@ -1,16 +1,21 @@
-from fastapi import APIRouter, UploadFile, File, Form
-from app.utils.logger import structlog
-from app.models.qa_response import Question, ProcessingResult, Answer
-from app.services.document_processor import DocumentProcessor
-from app.services.question_answerer import QuestionAnswerer
-from app.services.slack_notifier import SlackNotifier
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks
 import json
+from app.utils.logger import structlog
+from app.models.qa_response import Question, ProcessedResult
+from app.services.document_processor import DocumentProcessor, get_loaded_document
+from app.services.question_answerer import QuestionAnswerer, process_questions
+from app.services.slack_notifier import SlackNotifier, format_slack_message
+
 
 api_router = APIRouter(tags=["Agent APIs"])
 logger = structlog.get_logger(__name__)
 
-@api_router.post('/documents/qa', response_model=ProcessingResult)
-async def process_pdf_qa(questions: str = Form(...), pdf_file: UploadFile = File(...)) -> ProcessingResult:
+@api_router.post('/documents/qa', response_model=ProcessedResult)
+async def process_pdf_qa(
+    background_tasks: BackgroundTasks,
+    questions: str = Form(...),
+    pdf_file: UploadFile = File(...),
+) -> ProcessedResult:
     questions_list = json.loads(questions)
     questions_objects = [Question(**q) for q in questions_list]
 
@@ -18,18 +23,11 @@ async def process_pdf_qa(questions: str = Form(...), pdf_file: UploadFile = File
     question_answerer = QuestionAnswerer()
     slack_notifier = SlackNotifier()
 
-    vector_db = doc_processor.process_pdf(pdf_file)
-
-    results = []
-    for question in questions_objects:
-        context = doc_processor.get_relevant_context(vector_db, question.text)
-        answer = question_answerer.get_answer(question.text, context)
-        results.append(Answer(question=question.text, answer=answer))
-    
-    output = json.dumps([result.dict() for result in results], indent=2)
-    slack_notifier.push_notification(f"AI Generated Response:\n```\n{output}\n```")
-
-    return ProcessingResult(
+    vector_db = await get_loaded_document(pdf_file)
+    results = await process_questions(doc_processor, question_answerer, vector_db, questions_objects)
+    formatted_response : str = format_slack_message(results)
+    background_tasks.add_task(slack_notifier.push_notification, formatted_response)
+    return ProcessedResult(
         message="Here is the answer to your questions",
         results=results
     )

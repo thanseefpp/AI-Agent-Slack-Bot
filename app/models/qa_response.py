@@ -8,6 +8,6 @@ class Answer(BaseModel):
     question: str
     answer: str
 
-class ProcessingResult(BaseModel):
+class ProcessedResult(BaseModel):
     message: str
     results: List[Answer]
