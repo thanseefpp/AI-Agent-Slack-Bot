@@ -6,7 +6,8 @@ This project features an AI agent that utilizes a large language model to extrac
 1. [Features](#features)
 2. [Installation](#installation)
 3. [Configuration](#configuration)
-4. [Contact](#contact)
+4. [Inference](#inference)
+5. [Contact](#contact)
 
 
 ## Features
@@ -107,6 +108,16 @@ CORS_ORIGINS=<'REPLACE_WITH_YOUR_CORS_ORIGINS'>
 
 7. After Selecting the Channel use @you-bot-name and add the Bot to the Channel
 
+
+## Inference
+
+- After running the application use postman or Curl to access the endpoint
+
+```bash
+curl --location 'http://127.0.0.1:8000/api/v1/documents/qa' \
+--form 'pdf_file=@"location_to_pdf.pdf"' \
+--form 'questions="[{\"text\": \"explain robotics?\"}, {\"text\": \"Who is elonmusk?\"}, {\"text\": \"Can you tell me what is Chemical Engineering?\"}, {\"text\": \"explain the ARTIFICIAL INTELLIGENCE AND THE BIG BRAIN\"}]"'
+```
 
 ## Contact
 
